@@ -1,0 +1,35 @@
+description: >
+  Assume the deployer role for a single step and run a command with its
+  credentials in scope.
+
+  An OIDC source profile is first configured with the circleci/aws-cli orb.
+  aws/with_assumed_role assumes the deployer role via `aws sts assume-role` and
+  runs the command with the temporary credentials in scope. Nothing is written to
+  BASH_ENV, so the credentials stay scoped to that single step.
+
+usage:
+  version: 2.1
+  orbs:
+    aws-cli: circleci/aws-cli@5.4.1
+    aws: rynkowsg/aws@1.0.0
+
+  jobs:
+    deploy:
+      docker: [{image: "cimg/base:2026.04"}]
+      steps:
+        # configure an OIDC source profile allowed to call sts:AssumeRole
+        - aws-cli/setup:
+            profile_name: identity/oidc-circleci
+            role_arn: "arn:aws:iam::${IDENTITY_ACCOUNT_ID}:role/oidc/circleci-role"
+            role_session_name: "circleci-${CIRCLE_WORKFLOW_ID}"
+            set_aws_env_vars: false
+        # assume the deployer role and run the command with its credentials in scope
+        - aws/with_assumed_role:
+            source_profile: identity/oidc-circleci
+            role_arn: "arn:aws:iam::${FORGE_ACCOUNT_ID}:role/ci/deployer-role"
+            command: "aws sts get-caller-identity"
+
+  workflows:
+    test:
+      jobs:
+        - deploy

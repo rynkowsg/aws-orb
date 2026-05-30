@@ -1,4 +1,8 @@
-SCRIPTS :=
+SCRIPTS := \
+	assume_role \
+	export_credentials \
+	with_assumed_role \
+	with_profile
 
 .PHONY: scripts/deps
 .PHONY: scripts/gen
@@ -17,7 +21,7 @@ scripts/deps:
 	for s in $(SCRIPTS); do sosh fetch "src/scripts/$$s.bash" || exit 1; done
 
 scripts/gen: scripts/deps
-	for s in $(SCRIPTS); do sosh pack -i "src/scripts/$$s.bash" -o "src/scripts/gen/$$s.bash" || exit 1; done
+	for s in $(SCRIPTS); do sosh pack -i "src/scripts/$$s.bash" -o "src/scripts_generated/$$s.bash" || exit 1; done
 
 orb/validate: scripts/gen
 	circleci orb pack ./src > /tmp/orb
