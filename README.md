@@ -88,7 +88,7 @@ reserved. See the [LICENSE][license] file for details.
 [ci-build-badge]: https://circleci.com/gh/rynkowsg/aws-orb.svg?style=shield "CircleCI Build Status"
 [ci-build]: https://circleci.com/gh/rynkowsg/aws-orb
 [license-badge]: https://img.shields.io/badge/license-proprietary-lightgrey.svg
-[license]: https://raw.githubusercontent.com/rynkowsg/aws-orb/master/LICENSE
+[license]: https://raw.githubusercontent.com/rynkowsg/aws-orb/main/LICENSE
 [orb-page]: https://circleci.com/developer/orbs/orb/rynkowsg/aws
 [orb-version-badge]: https://badges.circleci.com/orbs/rynkowsg/aws.svg
 [orbs-discuss-badge]: https://img.shields.io/badge/community-CircleCI%20Discuss-343434.svg

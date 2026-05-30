@@ -1,0 +1,26 @@
+# https://github.com/asdf-community/asdf-plugin-manager/releases
+asdf-plugin-manager 1.5.0
+
+# https://github.com/CircleCI-Public/circleci-cli/releases
+circleci-cli 0.1.36202
+
+# PLUGIN: https://github.com/fredZen/asdf-babashka
+# RELEASES: https://github.com/babashka/babashka/releases
+babashka 1.12.218
+
+# required for: sosh
+# PLUGIN: https://github.com/halcyon/asdf-java
+# RELEASES: https://adoptium.net/temurin/archive/?version=17
+java temurin-17.0.19+10
+
+# plugin: https://github.com/luizm/asdf-shellcheck
+# releases: https://github.com/koalaman/shellcheck/releases
+shellcheck 0.11.0
+
+# plugin: https://github.com/luizm/asdf-shfmt
+# releases: https://github.com/mvdan/sh/releases
+shfmt 3.13.1
+
+# plugin: https://github.com/mise-plugins/asdf-yamlfmt
+# releases: https://github.com/google/yamlfmt/releases
+yamlfmt 0.21.0

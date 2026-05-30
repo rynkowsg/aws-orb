@@ -1,0 +1,7 @@
+extends: relaxed
+
+rules:
+  document-start: {present: false}
+  line-length:
+    max: 200
+    allow-non-breakable-inline-mappings: true

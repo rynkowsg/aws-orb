@@ -1,0 +1,11 @@
+version: 2.1
+
+description: >
+  Commands for working with AWS credentials in CircleCI.
+  Assume roles via `aws sts assume-role` and export profile credentials via
+  `aws configure export-credentials`, either persisted to BASH_ENV for the
+  whole job or scoped to a single step.
+
+display:
+  home_url: "https://github.com/rynkowsg/aws-orb"
+  source_url: "https://github.com/rynkowsg/aws-orb"
