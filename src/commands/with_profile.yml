@@ -1,0 +1,58 @@
+description: >
+  Runs a command with credentials from an AWS profile. Materializes the
+  profile's credentials into the step's shell via
+  `aws configure export-credentials`, then runs the given command. Nothing is
+  written to BASH_ENV, so the credentials are scoped to this single step.
+
+parameters:
+  # Required
+  command:
+    type: string
+    description: "Command to run with the profile's credentials in scope."
+  profile:
+    type: string
+    description: "AWS profile whose credentials are used."
+  # Optional — task
+  working_directory:
+    type: string
+    default: ""
+    description: >
+      Directory in which to run the command. When empty, the job's
+      working_directory is used.
+  # Optional — meta
+  custom_name:
+    type: string
+    default: ""
+    description: >
+      Custom step name. When empty, the default name includes the command
+      being run.
+  debug:
+    type: boolean
+    default: false
+    description: "Flag to run the script in debug mode."
+
+steps:
+  - when:
+      condition: <<parameters.custom_name>>
+      steps:
+        - run:
+            environment:
+              PARAM_COMMAND: <<parameters.command>>
+              PARAM_DEBUG: <<parameters.debug>>
+              PARAM_PROFILE: <<parameters.profile>>
+            name: <<parameters.custom_name>>
+            # CircleCI treats working_directory: "" as "use the job's working_directory".
+            working_directory: <<parameters.working_directory>>
+            command: <<include(scripts_generated/with_profile.bash)>>
+  - unless:
+      condition: <<parameters.custom_name>>
+      steps:
+        - run:
+            environment:
+              PARAM_COMMAND: <<parameters.command>>
+              PARAM_DEBUG: <<parameters.debug>>
+              PARAM_PROFILE: <<parameters.profile>>
+            name: "(aws/with_profile) <<parameters.command>>"
+            # CircleCI treats working_directory: "" as "use the job's working_directory".
+            working_directory: <<parameters.working_directory>>
+            command: <<include(scripts_generated/with_profile.bash)>>

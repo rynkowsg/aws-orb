@@ -1,0 +1,38 @@
+description: >
+  Run a single deploy step using the deployer profile's credentials.
+
+  An OIDC entry profile and a deployer profile (which assumes the deployer role
+  from it) are configured with the circleci/aws-cli orb. aws/with_profile
+  materializes the deployer profile's credentials via
+  `aws configure export-credentials` and runs the command with them in scope.
+  Nothing is written to BASH_ENV, so the credentials stay scoped to that single
+  step.
+
+usage:
+  version: 2.1
+  orbs:
+    aws-cli: circleci/aws-cli@5.4.1
+    aws: rynkowsg/aws@1.0.0
+
+  jobs:
+    deploy:
+      docker: [{image: "cimg/base:2026.04"}]
+      steps:
+        # OIDC entry profile
+        - aws-cli/setup:
+            profile_name: identity/oidc-circleci
+            role_arn: "arn:aws:iam::${IDENTITY_ACCOUNT_ID}:role/oidc/circleci-role"
+            role_session_name: "circleci-${CIRCLE_WORKFLOW_ID}"
+            set_aws_env_vars: false
+        # deployer profile, sourced from the OIDC profile
+        - aws-cli/role_arn_setup:
+            profile_name: forge/deployer
+            role_arn: "arn:aws:iam::${FORGE_ACCOUNT_ID}:role/ci/deployer-role"
+            source_profile: identity/oidc-circleci
+        # run the command with the deployer profile's credentials in scope
+        - aws/with_profile: {profile: forge/deployer, command: "aws sts get-caller-identity"}
+
+  workflows:
+    test:
+      jobs:
+        - deploy

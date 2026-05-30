@@ -1,0 +1,74 @@
+description: >
+  Runs a command with credentials from an assumed AWS role. Assumes role_arn
+  via `aws sts assume-role`, exports the temporary credentials into the step's
+  shell, then runs the given command. Nothing is written to BASH_ENV, so the
+  credentials are scoped to this single step.
+
+parameters:
+  # Required
+  command:
+    type: string
+    description: "Command to run with the assumed-role credentials in scope."
+  role_arn:
+    type: string
+    description: "ARN of the role to assume."
+  # Optional — task
+  role_session_name:
+    type: string
+    default: ""
+    description: >
+      Session name for the assumed role. When empty, defaults to
+      circleci-${CIRCLE_WORKFLOW_ID} at runtime.
+  source_profile:
+    type: string
+    default: ""
+    description: >
+      Optional source profile that calls sts:AssumeRole. When empty, --profile
+      is omitted and the default credential chain is used.
+  working_directory:
+    type: string
+    default: ""
+    description: >
+      Directory in which to run the command. When empty, the job's
+      working_directory is used.
+  # Optional — meta
+  custom_name:
+    type: string
+    default: ""
+    description: >
+      Custom step name. When empty, the default name includes the command
+      being run.
+  debug:
+    type: boolean
+    default: false
+    description: "Flag to run the script in debug mode."
+
+steps:
+  - when:
+      condition: <<parameters.custom_name>>
+      steps:
+        - run:
+            environment:
+              PARAM_COMMAND: <<parameters.command>>
+              PARAM_DEBUG: <<parameters.debug>>
+              PARAM_ROLE_ARN: <<parameters.role_arn>>
+              PARAM_ROLE_SESSION_NAME: <<parameters.role_session_name>>
+              PARAM_SOURCE_PROFILE: <<parameters.source_profile>>
+            name: <<parameters.custom_name>>
+            # CircleCI treats working_directory: "" as "use the job's working_directory".
+            working_directory: <<parameters.working_directory>>
+            command: <<include(scripts_generated/with_assumed_role.bash)>>
+  - unless:
+      condition: <<parameters.custom_name>>
+      steps:
+        - run:
+            environment:
+              PARAM_COMMAND: <<parameters.command>>
+              PARAM_DEBUG: <<parameters.debug>>
+              PARAM_ROLE_ARN: <<parameters.role_arn>>
+              PARAM_ROLE_SESSION_NAME: <<parameters.role_session_name>>
+              PARAM_SOURCE_PROFILE: <<parameters.source_profile>>
+            name: "(aws/with_assumed_role) <<parameters.command>>"
+            # CircleCI treats working_directory: "" as "use the job's working_directory".
+            working_directory: <<parameters.working_directory>>
+            command: <<include(scripts_generated/with_assumed_role.bash)>>
