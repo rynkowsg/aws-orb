@@ -1,0 +1,46 @@
+description: >
+  Run a build step under the builder profile and a deploy step under the
+  deployer profile within a single job.
+
+  An OIDC entry profile and two profiles ("builder" and "deployer", each
+  assuming its own role from the OIDC profile) are configured with the
+  circleci/aws-cli orb. Each aws/with_profile step materializes its profile's
+  credentials via `aws configure export-credentials` and runs the command with
+  them in scope. Nothing is written to BASH_ENV, so each profile's credentials
+  stay scoped to its own step.
+
+usage:
+  version: 2.1
+  orbs:
+    aws-cli: circleci/aws-cli@5.4.1
+    aws: rynkowsg/aws@1.0.0
+
+  jobs:
+    build_and_deploy:
+      docker: [{image: "cimg/base:2026.04"}]
+      steps:
+        # OIDC entry profile
+        - aws-cli/setup:
+            profile_name: identity/oidc-circleci
+            role_arn: "arn:aws:iam::${IDENTITY_ACCOUNT_ID}:role/oidc/circleci-role"
+            role_session_name: "circleci-${CIRCLE_WORKFLOW_ID}"
+            set_aws_env_vars: false
+        # builder profile, sourced from the OIDC profile
+        - aws-cli/role_arn_setup:
+            profile_name: forge/builder
+            role_arn: "arn:aws:iam::${FORGE_ACCOUNT_ID}:role/ci/builder-role"
+            source_profile: identity/oidc-circleci
+        # deployer profile, sourced from the OIDC profile
+        - aws-cli/role_arn_setup:
+            profile_name: forge/deployer
+            role_arn: "arn:aws:iam::${FORGE_ACCOUNT_ID}:role/ci/deployer-role"
+            source_profile: identity/oidc-circleci
+        # run a command with the builder profile's credentials in scope
+        - aws/with_profile: {profile: forge/builder, command: "aws sts get-caller-identity"}
+        # run a command with the deployer profile's credentials in scope
+        - aws/with_profile: {profile: forge/deployer, command: "aws sts get-caller-identity"}
+
+  workflows:
+    test:
+      jobs:
+        - build_and_deploy

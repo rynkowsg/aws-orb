@@ -1,0 +1,36 @@
+description: >
+  Assume the deployer role for the whole job and persist its credentials for
+  subsequent steps.
+
+  An OIDC source profile is first configured with the circleci/aws-cli orb.
+  aws/assume_role assumes the deployer role via `aws sts assume-role` and
+  writes the temporary credentials into BASH_ENV, so every following step in
+  the job runs with them.
+
+usage:
+  version: 2.1
+  orbs:
+    aws-cli: circleci/aws-cli@5.4.1
+    aws: rynkowsg/aws@1.0.0
+
+  jobs:
+    deploy:
+      docker: [{image: "cimg/base:2026.04"}]
+      steps:
+        # configure an OIDC source profile allowed to call sts:AssumeRole
+        - aws-cli/setup:
+            profile_name: identity/oidc-circleci
+            role_arn: "arn:aws:iam::${IDENTITY_ACCOUNT_ID}:role/oidc/circleci-role"
+            role_session_name: "circleci-${CIRCLE_WORKFLOW_ID}"
+            set_aws_env_vars: false
+        # assume the target role; credentials are exported to BASH_ENV
+        - aws/assume_role:
+            source_profile: identity/oidc-circleci
+            role_arn: "arn:aws:iam::${FORGE_ACCOUNT_ID}:role/ci/deployer-role"
+        # subsequent steps run with the assumed-role credentials
+        - run: aws sts get-caller-identity
+
+  workflows:
+    test:
+      jobs:
+        - deploy
