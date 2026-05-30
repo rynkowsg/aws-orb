@@ -1,0 +1,77 @@
+version: 2.1
+setup: true
+orbs:
+  # orb info: https://circleci.com/developer/orbs/orb/rynkowsg/asdf
+  asdf: rynkowsg/asdf@0.2.0
+  # orb info: https://circleci.com/developer/orbs/orb/circleci/orb-tools
+  # changelog: https://github.com/CircleCI-Public/orb-tools-orb/releases
+  orb-tools: circleci/orb-tools@12.1.0
+  # orb info: https://circleci.com/developer/orbs/orb/rynkowsg/rynkowsg
+  rynkowsg: rynkowsg/rynkowsg@0.5.0
+  # orb info: https://circleci.com/developer/orbs/orb/circleci/shellcheck
+  # changelog: https://github.com/CircleCI-Public/shellcheck-orb/releases
+  shellcheck: circleci/shellcheck@3.2.0
+
+filters: &filters
+  tags:
+    only: /.*/
+
+jobs:
+  lint_and_format:
+    executor: rynkowsg/docker_x86_cimg_base
+    steps:
+      - checkout
+      - asdf/install: {version: 0.15.0}
+      - asdf/cache_restore
+      - run:
+          name: asdf - add plugins & tools
+          command: |
+            # install asdf-plugin-manager at first
+            asdf plugin-add asdf-plugin-manager https://github.com/asdf-community/asdf-plugin-manager.git
+            asdf install asdf-plugin-manager
+            echo
+            asdf-plugin-manager add babashka && asdf install babashka
+            asdf-plugin-manager add java && asdf install java
+            asdf-plugin-manager add shellcheck && asdf install shellcheck
+            asdf-plugin-manager add shfmt && asdf install shfmt
+            asdf-plugin-manager add yamlfmt && asdf install yamlfmt
+            # java specific
+            . ~/.asdf/plugins/java/set-java-home.bash
+            echo ". ~/.asdf/plugins/java/set-java-home.bash" >> $BASH_ENV
+            echo "JAVA_HOME=$(asdf where java)" >> $BASH_ENV
+            # review all tools installed
+            set -x
+            bash --version
+            bb --version
+            java --version
+            shellcheck --version
+            shfmt --version
+            yamlfmt --version
+      - asdf/cache_save
+      - rynkowsg/install_sosh: {version: "v0.2.0"}
+      - run: make format_yaml/check
+      - run: make format_shell/check
+      - run: make lint_shell/check
+
+workflows:
+  lint-pack:
+    jobs:
+      # checks
+      - lint_and_format: {filters: *filters}
+      - orb-tools/lint: {filters: *filters, executor: {name: orb-tools/python, resource_class: small}}
+      - orb-tools/review: {filters: *filters, executor: {name: orb-tools/default, resource_class: small}}
+      - shellcheck/check: {filters: *filters}
+      # continue
+      - orb-tools/pack: {filters: *filters, executor: {name: orb-tools/default, resource_class: small}}
+      - orb-tools/continue:
+          requires:
+            - lint_and_format
+            - orb-tools/lint
+            - orb-tools/pack
+            - orb-tools/review
+            - shellcheck/check
+          executor: {name: orb-tools/default, resource_class: small}
+          filters: *filters
+          orb_name: aws
+          pipeline_number: <<pipeline.number>>
+          vcs_type: <<pipeline.project.type>>

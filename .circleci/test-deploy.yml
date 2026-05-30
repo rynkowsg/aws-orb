@@ -1,0 +1,47 @@
+version: 2.1
+
+orbs:
+  # orb under test
+  aws: {}
+  # orb info: https://circleci.com/developer/orbs/orb/circleci/orb-tools
+  # changelog: https://github.com/CircleCI-Public/orb-tools-orb/releases
+  orb-tools: circleci/orb-tools@12.1.0
+
+# Use this tag to ensure test jobs always run,
+# even though the downstream publish job will only run on release tags.
+filters: &filters
+  tags:
+    only: /.*/
+
+# Filter for release tags.
+release-filters: &release-filters
+  branches:
+    ignore: /.*/
+  tags:
+    only: /^v[0-9]+\.[0-9]+\.[0-9]+$/
+
+workflows:
+  test-deploy:
+    jobs:
+      - orb-tools/pack:
+          filters: *filters
+
+      - orb-tools/publish:
+          name: publish-dev
+          orb_name: rynkowsg/aws
+          vcs_type: <<pipeline.project.type>>
+          pub_type: dev
+          requires:
+            - orb-tools/pack
+          context: circleci/orb-publishing-context
+          filters: *filters
+
+      - orb-tools/publish:
+          name: publish-prod
+          orb_name: rynkowsg/aws
+          vcs_type: <<pipeline.project.type>>
+          pub_type: production
+          requires:
+            - publish-dev
+          context: circleci/orb-publishing-context
+          filters: *release-filters
