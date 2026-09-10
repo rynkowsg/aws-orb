@@ -5,20 +5,30 @@ orbs:
   asdf: rynkowsg/asdf@0.2.0
   # orb info: https://circleci.com/developer/orbs/orb/circleci/orb-tools
   # changelog: https://github.com/CircleCI-Public/orb-tools-orb/releases
-  orb-tools: circleci/orb-tools@12.1.0
+  orb-tools: circleci/orb-tools@12.5.0
   # orb info: https://circleci.com/developer/orbs/orb/rynkowsg/rynkowsg
-  rynkowsg: rynkowsg/rynkowsg@0.5.0
+  rynkowsg: rynkowsg/rynkowsg@0.7.0
   # orb info: https://circleci.com/developer/orbs/orb/circleci/shellcheck
   # changelog: https://github.com/CircleCI-Public/shellcheck-orb/releases
-  shellcheck: circleci/shellcheck@3.2.0
+  shellcheck: circleci/shellcheck@3.4.0
 
-filters: &filters
-  tags:
-    only: /.*/
+executors:
+  docker_base_small_x86:
+    # https://circleci.com/developer/images/image/cimg/base
+    # https://hub.docker.com/r/cimg/base/tags
+    docker: [{image: 'cimg/base:2026.09-24.04'}]
+    resource_class: small
+
+# Every branch and every tag. Tags have to be named: a job with no tag filter is
+# skipped when a tag is pushed, and this is a setup config - if nothing here runs
+# on a tag, nothing continues to test-deploy.yml and a release cannot publish.
+run_always: &run_always
+  branches: {only: '/.*/'}
+  tags: {only: '/.*/'}
 
 jobs:
   lint_and_format:
-    executor: rynkowsg/docker_x86_cimg_base
+    executor: docker_base_small_x86
     steps:
       - checkout
       - asdf/install: {version: 0.15.0}
@@ -49,20 +59,20 @@ jobs:
             yamlfmt --version
       - asdf/cache_save
       - rynkowsg/install_sosh: {version: "v0.2.0"}
-      - run: make format-yaml/check
       - run: make format-shell/check
+      - run: make format-yaml/check
       - run: make lint-shell/check
 
 workflows:
   lint-pack:
     jobs:
       # checks
-      - lint_and_format: {filters: *filters}
-      - orb-tools/lint: {filters: *filters, executor: {name: orb-tools/python, resource_class: small}}
-      - orb-tools/review: {filters: *filters, executor: {name: orb-tools/default, resource_class: small}}
-      - shellcheck/check: {filters: *filters}
+      - lint_and_format: {filters: *run_always}
+      - orb-tools/lint: {filters: *run_always, executor: {name: orb-tools/python, resource_class: small}}
+      - orb-tools/review: {filters: *run_always, executor: {name: orb-tools/default, resource_class: small}}
+      - shellcheck/check: {filters: *run_always}
       # continue
-      - orb-tools/pack: {filters: *filters, executor: {name: orb-tools/default, resource_class: small}}
+      - orb-tools/pack: {filters: *run_always, executor: {name: orb-tools/default, resource_class: small}}
       - orb-tools/continue:
           requires:
             - lint_and_format
@@ -71,7 +81,7 @@ workflows:
             - orb-tools/review
             - shellcheck/check
           executor: {name: orb-tools/default, resource_class: small}
-          filters: *filters
+          filters: *run_always
           orb_name: aws
           pipeline_number: <<pipeline.number>>
           vcs_type: <<pipeline.project.type>>
