@@ -1,8 +1,9 @@
 version: 2.1
 setup: true
 orbs:
-  # orb info: https://circleci.com/developer/orbs/orb/rynkowsg/asdf
-  asdf: rynkowsg/asdf@0.2.0
+  # orb info: https://circleci.com/developer/orbs/orb/rynkowsg/mise
+  # changelog: https://github.com/rynkowsg/mise-orb/blob/main/CHANGELOG.md
+  mise: rynkowsg/mise@0.1.0
   # orb info: https://circleci.com/developer/orbs/orb/circleci/orb-tools
   # changelog: https://github.com/CircleCI-Public/orb-tools-orb/releases
   orb-tools: circleci/orb-tools@12.5.0
@@ -31,33 +32,14 @@ jobs:
     executor: docker_base_small_x86
     steps:
       - checkout
-      - asdf/install: {version: 0.15.0}
-      - asdf/cache_restore
-      - run:
-          name: asdf - add plugins & tools
-          command: |
-            # install asdf-plugin-manager at first
-            asdf plugin-add asdf-plugin-manager https://github.com/asdf-community/asdf-plugin-manager.git
-            asdf install asdf-plugin-manager
-            echo
-            asdf-plugin-manager add babashka && asdf install babashka
-            asdf-plugin-manager add java && asdf install java
-            asdf-plugin-manager add shellcheck && asdf install shellcheck
-            asdf-plugin-manager add shfmt && asdf install shfmt
-            asdf-plugin-manager add yamlfmt && asdf install yamlfmt
-            # java specific
-            . ~/.asdf/plugins/java/set-java-home.bash
-            echo ". ~/.asdf/plugins/java/set-java-home.bash" >> $BASH_ENV
-            echo "JAVA_HOME=$(asdf where java)" >> $BASH_ENV
-            # review all tools installed
-            set -x
-            bash --version
-            bb --version
-            java --version
-            shellcheck --version
-            shfmt --version
-            yamlfmt --version
-      - asdf/cache_save
+      - mise/setup:
+          mise_version: v2026.9.4 # https://github.com/jdx/mise/releases
+          # java is here because babashka needs it, and babashka runs sosh.
+          tools: >-
+            babashka java
+            shellcheck
+            shfmt
+            yamlfmt
       - rynkowsg/install_sosh: {version: "v0.2.0"}
       - run: make format-shell/check
       - run: make format-yaml/check
