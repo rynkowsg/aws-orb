@@ -12,7 +12,7 @@
 .DS_Store
 
 # CircleCI
-orb.yml
+dist/
 
 # sosh
 .github_deps
