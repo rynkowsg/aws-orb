@@ -4,52 +4,68 @@ SCRIPTS := \
 	with_assumed_role \
 	with_profile
 
-.PHONY: scripts/deps
-.PHONY: scripts/gen
-.PHONY: orb/validate
-.PHONY: format
-.PHONY: _format_shell/deps
-.PHONY: format_shell/check
-.PHONY: format_shell/fix
-.PHONY: format_yaml/check
-.PHONY: format_yaml/fix
-.PHONY: lint
-.PHONY: _lint_shell/deps
-.PHONY: lint_shell/check
+.DEFAULT_GOAL := help
 
+# Lists every target that carries a `## ` description, in the order they appear.
+# Targets without one stay out of the listing, which is how the `_` ones hide.
+.PHONY: help
+help:  ## Print this help
+	@awk 'BEGIN{FS=":.*##"} /^[a-zA-Z0-9_\/-]+:.*##/ {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+
+.PHONY: orb/validate
+orb/validate: scripts/gen  ## Pack the orb and validate it (needs a CircleCI token)
+	mkdir -p dist
+	circleci orb pack ./src > dist/orb.yml
+	circleci orb validate dist/orb.yml
+
+.PHONY: _format-shell/deps
+_format-shell/deps:
+	sosh fetch @bin/format.bash
+
+.PHONY: _lint-shell/deps
+_lint-shell/deps:
+	sosh fetch @bin/lint.bash
+
+.PHONY: scripts/deps
 scripts/deps:
 	for s in $(SCRIPTS); do sosh fetch "src/scripts/$$s.bash" || exit 1; done
 
-scripts/gen: scripts/deps
+.PHONY: scripts/gen
+scripts/gen: scripts/deps  ## Pack the scripts into src/scripts_generated
 	for s in $(SCRIPTS); do sosh pack -i "src/scripts/$$s.bash" -o "src/scripts_generated/$$s.bash" || exit 1; done
 
-orb/validate: scripts/gen
-	circleci orb pack ./src > /tmp/orb
-	circleci orb validate /tmp/orb
+.PHONY: format/check
+format/check: format-shell/check format-yaml/check  ## Check shell and YAML formatting
 
-format: format_shell/fix format_yaml/fix
+.PHONY: format/fix
+format/fix: format-shell/fix format-yaml/fix  ## Format shell and YAML
 
-_format_shell/deps: @bin/format.bash
-	sosh fetch @bin/format.bash
+.PHONY: format-shell/check
+format-shell/check: _format-shell/deps  ## Check shell formatting
+	./@bin/format.bash check
 
-format_shell/check: _format_shell/deps
-	\@bin/format.bash check
+.PHONY: format-shell/fix
+format-shell/fix: _format-shell/deps  ## Format shell scripts
+	./@bin/format.bash apply
 
-format_shell/fix: _format_shell/deps
-	\@bin/format.bash apply
-
-format_yaml/check:
+.PHONY: format-yaml/check
+format-yaml/check:  ## Check YAML formatting
 	yamlfmt --lint .
 
-format_yaml/fix:
+.PHONY: format-yaml/fix
+format-yaml/fix:  ## Format YAML files
 	yamlfmt .
 
-lint: lint_shell/check
+.PHONY: lint/check
+lint/check: lint-shell/check  ## Lint sources
 
-_lint_shell/deps: @bin/lint.bash
-	sosh fetch @bin/lint.bash
+# lint.bash runs shellcheck with --external-sources, so shellcheck follows the
+# `# shellcheck source=` directives in the files it lints. Every library they
+# point at has to be fetched first, or shellcheck reports SC1091 and the lint
+# fails. That covers the @bin helpers and the scripts under src.
+.PHONY: lint-shell/check
+lint-shell/check: _format-shell/deps _lint-shell/deps scripts/deps  ## Lint shell scripts
+	./@bin/lint.bash
 
-lint_shell/check: _format_shell/deps _lint_shell/deps scripts/deps
-	\@bin/lint.bash
-
-check: format_shell/check format_yaml/check lint_shell/check orb/validate
+.PHONY: check
+check: format/check lint/check orb/validate  ## Run every check

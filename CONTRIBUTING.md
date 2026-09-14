@@ -17,11 +17,12 @@ dependencies from the `shell-gr` library. After editing `scripts/`, regenerate b
 ## Development
 
 ```bash
-make scripts/gen      # regenerate packed scripts after editing scripts/
-make orb/validate     # pack and validate the orb
-make format           # format shell and YAML
-make lint             # lint shell scripts
+make            # list the targets
+make check      # run every check
 ```
+
+`make check` includes `make orb/validate`, which calls the CircleCI API, so it
+needs a token — `circleci auth login`, or `CIRCLE_TOKEN` in the environment.
 
 ## Release Process
 

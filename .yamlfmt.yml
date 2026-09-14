@@ -7,7 +7,7 @@ exclude:
 extensions:
   - yaml
   - yml
-gitignore_excludes: false
+gitignore_excludes: true
 gitignore_path: .gitignore
 include: []
 line_ending: lf

@@ -5,20 +5,19 @@ orbs:
   aws: {}
   # orb info: https://circleci.com/developer/orbs/orb/circleci/orb-tools
   # changelog: https://github.com/CircleCI-Public/orb-tools-orb/releases
-  orb-tools: circleci/orb-tools@12.1.0
+  orb-tools: circleci/orb-tools@12.5.0
 
-# Use this tag to ensure test jobs always run,
-# even though the downstream publish job will only run on release tags.
-filters: &filters
-  tags:
-    only: /.*/
+# Every branch and every tag. Tags have to be named: a job with no tag filter is
+# skipped when a tag is pushed, and the publish jobs below require these, so on a
+# release tag they would have nothing to wait for.
+run_always: &run_always
+  branches: {only: '/.*/'}
+  tags: {only: '/.*/'}
 
-# Filter for release tags.
-release-filters: &release-filters
-  branches:
-    ignore: /.*/
-  tags:
-    only: /^v[0-9]+\.[0-9]+\.[0-9]+$/
+# Only a release tag, never a branch.
+run_on_release: &run_on_release
+  branches: {ignore: '/.*/'}
+  tags: {only: '/^v[0-9]+\.[0-9]+\.[0-9]+$/'}
 
 # NOTE: This orb has no integration test job. Its commands assume AWS roles and
 # export profile credentials, which would require a real AWS account and an
@@ -30,7 +29,7 @@ workflows:
   test-deploy:
     jobs:
       - orb-tools/pack:
-          filters: *filters
+          filters: *run_always
 
       - orb-tools/publish:
           name: publish-dev
@@ -40,7 +39,7 @@ workflows:
           requires:
             - orb-tools/pack
           context: circleci/orb-publishing-context
-          filters: *filters
+          filters: *run_always
 
       - orb-tools/publish:
           name: publish-prod
@@ -50,4 +49,4 @@ workflows:
           requires:
             - publish-dev
           context: circleci/orb-publishing-context
-          filters: *release-filters
+          filters: *run_on_release
