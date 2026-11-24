@@ -2,7 +2,13 @@
 
 ## [Unreleased]
 
-[Unreleased]: https://github.com/rynkowsg/aws-orb/compare/v0.1.0..main
+[Unreleased]: https://github.com/rynkowsg/aws-orb/compare/v0.1.1..main
+
+## [0.1.1](https://github.com/rynkowsg/aws-orb/compare/v0.1.0..v0.1.1) (2026-11-24)
+
+### Changed
+
+- Update the bundled shell-gr helpers from 0.5.0 to 0.9.0.
 
 ## [0.1.0](https://github.com/rynkowsg/aws-orb/commits/v0.1.0) (2026-05-31)
 
